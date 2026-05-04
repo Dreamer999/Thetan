@@ -33,10 +33,14 @@ else
     git checkout main
 fi
 
-step "Pulling demo files from $SRC_REPO@$SRC_BRANCH"
-RAW="https://raw.githubusercontent.com/$SRC_REPO/$SRC_BRANCH"
-curl -fsSL -o demo.html  "$RAW/demo.html"
-curl -fsSL -o index.html "$RAW/index.html"
+step "Pulling demo files from $SRC_REPO@$SRC_BRANCH (via gh, supports private repos)"
+fetch() {
+    local file="$1"
+    gh api "repos/$SRC_REPO/contents/$file?ref=$SRC_BRANCH" \
+        -H "Accept: application/vnd.github.raw" > "$file"
+}
+fetch demo.html
+fetch index.html
 ok "demo.html  ($(wc -c < demo.html  | tr -d ' ') bytes)"
 ok "index.html ($(wc -c < index.html | tr -d ' ') bytes)"
 
