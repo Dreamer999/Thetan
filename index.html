@@ -1,0 +1,1011 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>PureHome · AI 組織早晨 Demo · V2.1</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          ink:       '#0B1220',
+          panel:     '#0F1A2E',
+          panel2:    '#13243F',
+          line:      '#1E3354',
+          mute:      '#7C8DAA',
+          accent:    '#36C2CE',
+          accent2:   '#7BD3EA',
+          warn:      '#F4B860',
+          danger:    '#E8546F',
+          ok:        '#5BE0A6',
+          gold:      '#E2C275',
+        },
+        fontFamily: {
+          sans: ['"Inter"','"PingFang TC"','"Noto Sans TC"','system-ui','sans-serif'],
+          mono: ['"JetBrains Mono"','ui-monospace','monospace'],
+        },
+        boxShadow: {
+          'glow':   '0 0 0 1px rgba(54,194,206,0.20), 0 8px 30px rgba(54,194,206,0.10)',
+          'panel':  '0 1px 0 rgba(255,255,255,0.04) inset, 0 10px 30px rgba(0,0,0,0.35)',
+        }
+      }
+    }
+  }
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  html, body { background: radial-gradient(1200px 600px at 10% -10%, rgba(54,194,206,0.10), transparent 60%),
+                            radial-gradient(900px 500px at 110% 10%, rgba(123,211,234,0.06), transparent 50%),
+                            #0B1220; color: #E5ECF6; }
+  .glass { background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+           border: 1px solid rgba(255,255,255,0.07); backdrop-filter: blur(8px); }
+  .card  { background: linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.005));
+           border: 1px solid rgba(255,255,255,0.06); }
+  .chip  { display:inline-flex; align-items:center; gap:.35rem; padding:.2rem .55rem; border-radius:9999px;
+           font-size:.72rem; font-weight:600; border:1px solid rgba(255,255,255,0.10); }
+  .num   { font-feature-settings: "tnum" 1; font-variant-numeric: tabular-nums; }
+  .scroll-hint::-webkit-scrollbar { width: 8px; height: 8px; }
+  .scroll-hint::-webkit-scrollbar-thumb { background: #1E3354; border-radius: 8px; }
+  .ring-accent-soft { box-shadow: 0 0 0 1px rgba(54,194,206,0.30), 0 0 0 6px rgba(54,194,206,0.08); }
+  .step.active { color: #E5ECF6; background: linear-gradient(180deg, rgba(54,194,206,0.18), rgba(54,194,206,0.06));
+                 border-color: rgba(54,194,206,0.45); }
+  .step.done   { color: #9DEAEC; border-color: rgba(54,194,206,0.25); }
+  .pulse-dot::before {
+    content:""; display:inline-block; width:.5rem; height:.5rem; border-radius:9999px;
+    background:#5BE0A6; margin-right:.4rem; box-shadow: 0 0 0 0 rgba(91,224,166,0.6);
+    animation: pulse 1.6s infinite;
+  }
+  @keyframes pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(91,224,166,0.6); }
+    70%  { box-shadow: 0 0 0 8px rgba(91,224,166,0); }
+    100% { box-shadow: 0 0 0 0 rgba(91,224,166,0); }
+  }
+  .reveal { opacity:0; transform: translateY(6px); transition: all .4s ease; }
+  .reveal.show { opacity:1; transform: translateY(0); }
+  details > summary { list-style: none; cursor: pointer; }
+  details > summary::-webkit-details-marker { display: none; }
+  .grid-spark {
+    background-image: linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px),
+                      linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+  .typing::after { content:"▍"; color:#36C2CE; animation: blink 1s infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .toast { animation: rise .25s ease-out; }
+  @keyframes rise { from { transform: translateY(8px); opacity: 0;} to { transform: translateY(0); opacity:1;} }
+</style>
+</head>
+<body class="font-sans">
+
+<!-- ============================================================ -->
+<!-- TOP BAR                                                       -->
+<!-- ============================================================ -->
+<header class="sticky top-0 z-30 border-b border-line/70 bg-ink/80 backdrop-blur">
+  <div class="max-w-[1400px] mx-auto px-6 py-3 flex items-center gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-accent to-accent2 grid place-items-center shadow-glow">
+        <svg viewBox="0 0 24 24" fill="none" class="w-5 h-5 text-ink">
+          <path d="M12 3c3 5 6 8 6 12a6 6 0 1 1-12 0c0-4 3-7 6-12Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="leading-tight">
+        <div class="text-sm text-mute">PureHome · 訂閱營運中樞</div>
+        <div class="text-[15px] font-bold tracking-tight">AI 組織早晨 <span class="text-mute font-medium">· V2.1 Demo</span></div>
+      </div>
+    </div>
+    <div class="hidden md:flex items-center gap-1.5 ml-6 text-[13px]">
+      <span class="chip border-accent/30 text-accent2 bg-accent/10">淨水器 / 除濕機 D2C</span>
+      <span class="chip text-mute">無醫療法規風險</span>
+      <span class="chip text-mute">8,000 訂閱戶</span>
+    </div>
+    <div class="ml-auto flex items-center gap-2 text-sm">
+      <span id="clock" class="num text-mute">08:00</span>
+      <span class="text-mute">·</span>
+      <span class="text-mute">2026/05/05 · 週二</span>
+      <span class="ml-3 chip border-ok/30 text-ok bg-ok/10"><span class="pulse-dot"></span>AI Crew Online</span>
+      <button onclick="resetDemo()" class="ml-3 px-3 py-1.5 rounded-lg border border-line text-mute hover:text-white hover:border-accent text-[12px]">↻ Reset Demo</button>
+    </div>
+  </div>
+
+  <!-- Module stepper -->
+  <div class="max-w-[1400px] mx-auto px-6 pb-3">
+    <div class="grid grid-cols-2 md:grid-cols-6 gap-2">
+      <a href="#m1" class="step active rounded-lg border border-line/70 px-3 py-2 text-[12px] flex items-center gap-2"
+         data-step="1"><span class="num text-mute">01</span><span>戰略簡報</span></a>
+      <a href="#m2" class="step rounded-lg border border-line/70 px-3 py-2 text-[12px] flex items-center gap-2 text-mute"
+         data-step="2"><span class="num text-mute">02</span><span>競品掃描</span></a>
+      <a href="#m3" class="step rounded-lg border border-line/70 px-3 py-2 text-[12px] flex items-center gap-2 text-mute"
+         data-step="3"><span class="num text-mute">03</span><span>客戶副手</span></a>
+      <a href="#m4" class="step rounded-lg border border-line/70 px-3 py-2 text-[12px] flex items-center gap-2 text-mute"
+         data-step="4"><span class="num text-mute">04</span><span>Approval Queue</span></a>
+      <a href="#m5" class="step rounded-lg border border-line/70 px-3 py-2 text-[12px] flex items-center gap-2 text-mute"
+         data-step="5"><span class="num text-mute">05</span><span>Operations</span></a>
+      <a href="#m6" class="step rounded-lg border border-line/70 px-3 py-2 text-[12px] flex items-center gap-2 text-mute"
+         data-step="6"><span class="num text-mute">06</span><span>C-Suite</span></a>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-[1400px] mx-auto px-6 py-8 space-y-14">
+
+  <!-- ===================== HERO / MODULE 1 ===================== -->
+  <section id="m1" class="space-y-5">
+    <div class="flex items-end justify-between flex-wrap gap-3">
+      <div>
+        <div class="text-mute text-xs tracking-[.2em] uppercase">Module 01 · 08:00</div>
+        <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight mt-1">
+          訂閱戶健康儀表板 <span class="text-mute font-semibold">· Allen 的早晨</span>
+        </h1>
+        <p class="text-mute mt-2 max-w-2xl">
+          這份簡報不是 Allen 寫的——是 <span class="text-accent2">AI 凌晨 6 點</span>從訂單、客服、出貨、IoT 用水量整合生成的。
+        </p>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="chip border-accent/30 text-accent2 bg-accent/10">📍 Today's Top 3</span>
+        <span class="chip text-mute">建議 90 秒內看完</span>
+      </div>
+    </div>
+
+    <!-- 4 KPI tiles -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <!-- KPI -->
+      <div class="card rounded-2xl p-5 shadow-panel">
+        <div class="text-mute text-xs">總訂閱戶</div>
+        <div class="num text-3xl font-extrabold mt-1">8,000</div>
+        <div class="mt-3 flex items-center gap-2 text-xs text-mute">
+          <span class="chip border-ok/30 text-ok bg-ok/10">+312 / 30d</span>
+          <span>淨增 +3.9%</span>
+        </div>
+        <svg class="w-full h-10 mt-3" viewBox="0 0 200 40" fill="none">
+          <polyline points="0,32 20,30 40,28 60,26 80,24 100,22 120,18 140,16 160,12 180,10 200,8"
+                    stroke="#36C2CE" stroke-width="2" fill="none"/>
+          <polyline points="0,32 20,30 40,28 60,26 80,24 100,22 120,18 140,16 160,12 180,10 200,8 200,40 0,40"
+                    fill="rgba(54,194,206,0.10)"/>
+        </svg>
+      </div>
+
+      <div class="card rounded-2xl p-5 shadow-panel">
+        <div class="text-mute text-xs">活躍 / 配件超期 / 流失中</div>
+        <div class="flex items-baseline gap-2 mt-1">
+          <span class="num text-3xl font-extrabold text-ok">5,200</span>
+          <span class="num text-2xl font-bold text-warn">1,800</span>
+          <span class="num text-2xl font-bold text-danger">1,000</span>
+        </div>
+        <div class="mt-3 grid grid-cols-3 gap-1.5 text-[11px] text-mute">
+          <span>活躍 65%</span><span>逾期 22.5%</span><span>流失 12.5%</span>
+        </div>
+        <div class="mt-2 h-2 rounded-full bg-line overflow-hidden flex">
+          <div style="width:65%" class="bg-ok"></div>
+          <div style="width:22.5%" class="bg-warn"></div>
+          <div style="width:12.5%" class="bg-danger"></div>
+        </div>
+      </div>
+
+      <div class="card rounded-2xl p-5 shadow-panel">
+        <div class="text-mute text-xs">續訂率（30/60/90）</div>
+        <div class="flex items-baseline gap-3 mt-1">
+          <span class="num text-3xl font-extrabold">95<span class="text-base text-mute">%</span></span>
+          <span class="num text-xl text-accent2">87%</span>
+          <span class="num text-xl text-warn">78%</span>
+        </div>
+        <div class="text-[11px] text-mute mt-1">90d 目標 80%（差 2pp）</div>
+        <div class="mt-3 grid grid-cols-3 gap-1 text-center text-[10px] text-mute">
+          <div>D30</div><div>D60</div><div>D90</div>
+        </div>
+        <div class="grid grid-cols-3 gap-1">
+          <div class="h-1.5 bg-ok rounded"></div>
+          <div class="h-1.5 bg-accent rounded"></div>
+          <div class="h-1.5 bg-warn rounded"></div>
+        </div>
+      </div>
+
+      <div class="card rounded-2xl p-5 shadow-panel">
+        <div class="text-mute text-xs">月 ARR · 客單 · LTV</div>
+        <div class="num text-3xl font-extrabold mt-1">NT$ 4.5M</div>
+        <div class="mt-2 grid grid-cols-2 gap-2 text-[12px]">
+          <div class="flex items-center justify-between"><span class="text-mute">客單</span><span class="num">NT$ 1,490</span></div>
+          <div class="flex items-center justify-between"><span class="text-mute">LTV</span><span class="num">NT$ 28,400</span></div>
+          <div class="flex items-center justify-between"><span class="text-mute">CAC</span><span class="num">NT$ 880</span></div>
+          <div class="flex items-center justify-between"><span class="text-mute">回本</span><span class="num">2.1 個月</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Today's top 3 -->
+    <div class="grid md:grid-cols-3 gap-4">
+      <div class="card rounded-2xl p-5">
+        <div class="flex items-center gap-2 text-xs">
+          <span class="chip border-warn/30 text-warn bg-warn/10">🔴 高優先</span>
+          <span class="text-mute">客戶類</span>
+        </div>
+        <div class="mt-2 text-lg font-bold">1,800 個濾芯逾期該換</div>
+        <p class="text-mute text-sm mt-1">
+          其中 <span class="text-white num">412</span> 戶 LTV ≥ NT$ 30K，建議今日批次提醒（已寫稿，等核准）。
+        </p>
+        <a href="#m4" class="mt-3 inline-flex items-center text-accent2 text-sm font-semibold">→ 跳到 Approval Queue</a>
+      </div>
+      <div class="card rounded-2xl p-5">
+        <div class="flex items-center gap-2 text-xs">
+          <span class="chip border-warn/30 text-warn bg-warn/10">🟡 中優先</span>
+          <span class="text-mute">市場類</span>
+        </div>
+        <div class="mt-2 text-lg font-bold">iSpring 美國降價 10%</div>
+        <p class="text-mute text-sm mt-1">
+          台灣總代理 <span class="text-white">尚未跟進</span>。建議準備留客方案 + Top 100 高價值戶 LINE 觸達。
+        </p>
+        <a href="#m2" class="mt-3 inline-flex items-center text-accent2 text-sm font-semibold">→ 跳到 競品掃描</a>
+      </div>
+      <div class="card rounded-2xl p-5">
+        <div class="flex items-center gap-2 text-xs">
+          <span class="chip border-ok/30 text-ok bg-ok/10">🟢 待辦</span>
+          <span class="text-mute">營運類</span>
+        </div>
+        <div class="mt-2 text-lg font-bold">312 個本週要送貨</div>
+        <p class="text-mute text-sm mt-1">
+          倉庫剩 <span class="text-white num">287</span> 件主濾芯，缺料 <span class="text-warn num">25</span> 件。
+          建議 09:30 補貨 PO。
+        </p>
+        <a href="#m5" class="mt-3 inline-flex items-center text-accent2 text-sm font-semibold">→ 跳到 Operations</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== MODULE 2 · COMPETITOR SCAN ===================== -->
+  <section id="m2" class="space-y-5">
+    <div class="flex items-end justify-between flex-wrap gap-3">
+      <div>
+        <div class="text-mute text-xs tracking-[.2em] uppercase">Module 02 · 08:15</div>
+        <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight mt-1">
+          競品掃描 <span class="text-mute font-semibold">· 24h 動態</span>
+        </h2>
+        <p class="text-mute mt-2 max-w-2xl">
+          AI 凌晨爬蟲 8 個競品官網 + Momo / PChome / 蝦皮 / FB 廣告。發現 <span class="text-warn">3 個</span> 變化值得關注。
+        </p>
+      </div>
+      <div class="flex items-center gap-2 text-xs text-mute">
+        <span class="chip text-mute">最後更新 06:32</span>
+        <span class="chip text-mute">監測中 8 品牌</span>
+      </div>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-4">
+      <!-- Competitor card -->
+      <div class="card rounded-2xl p-5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-lg bg-danger/20 grid place-items-center text-danger font-bold">iS</div>
+            <div>
+              <div class="font-bold">iSpring · 美國</div>
+              <div class="text-mute text-xs">主濾芯 6 期套組</div>
+            </div>
+          </div>
+          <span class="chip border-danger/30 text-danger bg-danger/10">↓ 15.1%</span>
+        </div>
+        <div class="mt-4 flex items-baseline gap-3">
+          <span class="num text-3xl font-extrabold text-danger">$1,690</span>
+          <span class="num text-mute line-through">$1,990</span>
+        </div>
+        <div class="mt-3 text-sm text-mute">
+          降價 NT$300、推「年訂閱送 1 期」。<br/>
+          台灣總代理 <span class="text-white">尚未跟進</span>。
+        </div>
+        <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
+          <div class="bg-panel2/50 rounded-lg px-3 py-2">
+            <div class="text-mute">影響戶</div>
+            <div class="num font-bold mt-0.5">≈ 320 戶</div>
+          </div>
+          <div class="bg-panel2/50 rounded-lg px-3 py-2">
+            <div class="text-mute">建議</div>
+            <div class="font-semibold mt-0.5 text-accent2">留客 NT$ 200</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card rounded-2xl p-5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-lg bg-accent/20 grid place-items-center text-accent font-bold">Br</div>
+            <div>
+              <div class="font-bold">Brita · 德</div>
+              <div class="text-mute text-xs">瀘水壺訂閱</div>
+            </div>
+          </div>
+          <span class="chip text-mute">→ 持平</span>
+        </div>
+        <div class="mt-4 flex items-baseline gap-3">
+          <span class="num text-3xl font-extrabold">$890</span>
+          <span class="num text-mute">/月</span>
+        </div>
+        <div class="mt-3 text-sm text-mute">
+          推出「兒童版」分支訂閱。Momo 主打母嬰族。
+        </div>
+        <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
+          <div class="bg-panel2/50 rounded-lg px-3 py-2">
+            <div class="text-mute">客群重疊</div>
+            <div class="num font-bold mt-0.5">18%</div>
+          </div>
+          <div class="bg-panel2/50 rounded-lg px-3 py-2">
+            <div class="text-mute">建議</div>
+            <div class="font-semibold mt-0.5 text-mute">先觀察</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card rounded-2xl p-5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div class="w-8 h-8 rounded-lg bg-warn/20 grid place-items-center text-warn font-bold">3M</div>
+            <div>
+              <div class="font-bold">3M · 本土</div>
+              <div class="text-mute text-xs">家用淨水主力</div>
+            </div>
+          </div>
+          <span class="chip border-warn/30 text-warn bg-warn/10">↑ 廣告 +42%</span>
+        </div>
+        <div class="mt-4 flex items-baseline gap-3">
+          <span class="num text-3xl font-extrabold">$1,290</span>
+          <span class="num text-mute">/期</span>
+        </div>
+        <div class="mt-3 text-sm text-mute">
+          FB 廣告投放週增 42%。素材主打「免換濾芯提醒」——<span class="text-accent2">我們已經有</span>。
+        </div>
+        <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
+          <div class="bg-panel2/50 rounded-lg px-3 py-2">
+            <div class="text-mute">建議</div>
+            <div class="font-semibold mt-0.5 text-accent2">投反向素材</div>
+          </div>
+          <div class="bg-panel2/50 rounded-lg px-3 py-2">
+            <div class="text-mute">預算</div>
+            <div class="num font-bold mt-0.5">NT$ 18 萬</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== MODULE 3 · CUSTOMER COPILOT ===================== -->
+  <section id="m3" class="space-y-5">
+    <div class="flex items-end justify-between flex-wrap gap-3">
+      <div>
+        <div class="text-mute text-xs tracking-[.2em] uppercase">Module 03 · 08:30</div>
+        <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight mt-1">
+          客戶副手 <span class="text-mute font-semibold">· 今日 Top 3</span>
+        </h2>
+        <p class="text-mute mt-2 max-w-2xl">
+          從 8,000 戶中，AI 用「LTV × 流失風險 × 互動新鮮度」三維打分，篩出今日該關注的 3 位。
+        </p>
+      </div>
+    </div>
+
+    <div class="grid md:grid-cols-3 gap-4">
+      <!-- 王太太 -->
+      <article class="card rounded-2xl p-5 ring-1 ring-danger/30">
+        <div class="flex items-center justify-between">
+          <span class="chip border-danger/30 text-danger bg-danger/10">🔴 立即聯繫</span>
+          <span class="num text-mute text-xs">c_2840</span>
+        </div>
+        <div class="mt-3 flex items-center gap-3">
+          <div class="w-12 h-12 rounded-full bg-gradient-to-br from-danger/40 to-warn/40 grid place-items-center font-bold text-lg">王</div>
+          <div>
+            <div class="font-bold text-lg">王太太</div>
+            <div class="text-mute text-xs">台北市 · 訂戶 4 年</div>
+          </div>
+        </div>
+        <div class="mt-4 text-sm">
+          主濾芯使用 <span class="num text-danger font-bold">105 天</span>（建議 90 天）<br/>
+          會影響濾水 <span class="text-warn">流速 / TDS</span>。
+        </div>
+        <dl class="mt-3 grid grid-cols-2 gap-2 text-xs">
+          <div class="bg-panel2/50 rounded-lg px-3 py-2">
+            <dt class="text-mute">LTV</dt><dd class="num font-bold">NT$ 28,400</dd>
+          </div>
+          <div class="bg-panel2/50 rounded-lg px-3 py-2">
+            <dt class="text-mute">流失風險</dt><dd class="font-bold text-warn">62 / 100</dd>
+          </div>
+        </dl>
+        <div class="mt-3 text-xs text-mute">過去 3 次都準時換 · 上次互動：2 個月前回信稱讚</div>
+      </article>
+
+      <!-- 陳先生 -->
+      <article class="card rounded-2xl p-5 ring-1 ring-warn/30">
+        <div class="flex items-center justify-between">
+          <span class="chip border-warn/30 text-warn bg-warn/10">🟡 本週聯繫</span>
+          <span class="num text-mute text-xs">c_5102</span>
+        </div>
+        <div class="mt-3 flex items-center gap-3">
+          <div class="w-12 h-12 rounded-full bg-gradient-to-br from-accent/40 to-accent2/40 grid place-items-center font-bold text-lg">陳</div>
+          <div>
+            <div class="font-bold text-lg">陳先生</div>
+            <div class="text-mute text-xs">新竹市 · 訂戶 1.2 年</div>
+          </div>
+        </div>
+        <div class="mt-4 text-sm">
+          除濕機保固 <span class="text-warn font-bold">7 天到期</span>。<br/>
+          家中相對溼度長期 75%+，建議延長保固方案。
+        </div>
+        <dl class="mt-3 grid grid-cols-2 gap-2 text-xs">
+          <div class="bg-panel2/50 rounded-lg px-3 py-2">
+            <dt class="text-mute">LTV</dt><dd class="num font-bold">NT$ 12,800</dd>
+          </div>
+          <div class="bg-panel2/50 rounded-lg px-3 py-2">
+            <dt class="text-mute">流失風險</dt><dd class="font-bold text-mute">28 / 100</dd>
+          </div>
+        </dl>
+        <div class="mt-3 text-xs text-mute">客服紀錄：曾抱怨除霜頻繁 · IoT 訊號正常</div>
+      </article>
+
+      <!-- Linda -->
+      <article class="card rounded-2xl p-5 ring-1 ring-ok/30">
+        <div class="flex items-center justify-between">
+          <span class="chip border-ok/30 text-ok bg-ok/10">🟢 別打擾</span>
+          <span class="num text-mute text-xs">c_8917</span>
+        </div>
+        <div class="mt-3 flex items-center gap-3">
+          <div class="w-12 h-12 rounded-full bg-gradient-to-br from-ok/40 to-accent/40 grid place-items-center font-bold text-lg">L</div>
+          <div>
+            <div class="font-bold text-lg">Linda</div>
+            <div class="text-mute text-xs">台中市 · 訂戶 1 天</div>
+          </div>
+        </div>
+        <div class="mt-4 text-sm">
+          昨天剛安裝完。技師回報滿意。<br/>
+          <span class="text-ok">7 天後</span>由 AI 自動發滿意度問卷。
+        </div>
+        <dl class="mt-3 grid grid-cols-2 gap-2 text-xs">
+          <div class="bg-panel2/50 rounded-lg px-3 py-2">
+            <dt class="text-mute">預測 LTV</dt><dd class="num font-bold">NT$ 22,000</dd>
+          </div>
+          <div class="bg-panel2/50 rounded-lg px-3 py-2">
+            <dt class="text-mute">流失風險</dt><dd class="font-bold text-ok">8 / 100</dd>
+          </div>
+        </dl>
+        <div class="mt-3 text-xs text-mute">推薦人：陳先生 · 安裝評分 5.0</div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ===================== MODULE 4 · APPROVAL QUEUE (HERO) ===================== -->
+  <section id="m4" class="space-y-5">
+    <div class="flex items-end justify-between flex-wrap gap-3">
+      <div>
+        <div class="text-mute text-xs tracking-[.2em] uppercase">Module 04 · 09:00 · ⭐ 核心</div>
+        <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight mt-1">
+          Approval Queue <span class="text-mute font-semibold">· 每封信都過 Allen 核准</span>
+        </h2>
+        <p class="text-mute mt-2 max-w-2xl">
+          AI 寫稿，但<span class="text-accent2">不寄</span>。每封都告訴你「為什麼是這個客戶」——你按 Approve，才送出。
+        </p>
+      </div>
+      <div class="flex items-center gap-2 text-xs">
+        <span class="chip border-accent/30 text-accent2 bg-accent/10" id="q-pending"><span class="pulse-dot"></span>68 pending</span>
+        <span class="chip text-mute" id="q-approved">0 approved</span>
+        <span class="chip text-mute" id="q-skipped">0 skipped</span>
+      </div>
+    </div>
+
+    <div class="grid lg:grid-cols-[360px_1fr] gap-5">
+
+      <!-- Control panel -->
+      <aside class="card rounded-2xl p-5 h-fit">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">🛡</span>
+          <h3 class="font-bold">Control Panel</h3>
+          <span class="ml-auto chip border-accent/30 text-accent2 bg-accent/10">Active</span>
+        </div>
+        <p class="text-mute text-xs mt-1">Allen 自己定的 5 條規則。AI 違反 = 攔下不寄。</p>
+
+        <ul class="mt-4 space-y-2.5 text-sm">
+          <li class="flex gap-2"><span class="text-ok mt-0.5">✓</span><div><b>Rule 1</b> · 濾芯使用超過 90 天才提醒</div></li>
+          <li class="flex gap-2"><span class="text-ok mt-0.5">✓</span><div><b>Rule 2</b> · 每 14 天最多 1 封通知</div></li>
+          <li class="flex gap-2"><span class="text-ok mt-0.5">✓</span><div><b>Rule 3</b> · 折扣超過 NT$300 必須單獨核准</div></li>
+          <li class="flex gap-2"><span class="text-ok mt-0.5">✓</span><div><b>Rule 4</b> · 已退訂客戶不再聯絡</div></li>
+          <li class="flex gap-2"><span class="text-ok mt-0.5">✓</span><div><b>Rule 5</b> · 每封信必須有退訂連結</div></li>
+        </ul>
+
+        <div class="mt-5 pt-4 border-t border-line/60">
+          <div class="text-xs text-mute uppercase tracking-wider">今日守門統計</div>
+          <div class="mt-2 grid grid-cols-3 gap-2 text-center">
+            <div class="bg-panel2/60 rounded-lg py-2">
+              <div class="num font-bold text-lg">312</div>
+              <div class="text-[11px] text-mute">AI 草稿</div>
+            </div>
+            <div class="bg-panel2/60 rounded-lg py-2">
+              <div class="num font-bold text-lg text-warn">244</div>
+              <div class="text-[11px] text-mute">規則攔下</div>
+            </div>
+            <div class="bg-panel2/60 rounded-lg py-2">
+              <div class="num font-bold text-lg text-accent2">68</div>
+              <div class="text-[11px] text-mute">送你核准</div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Email card -->
+      <div class="card rounded-2xl overflow-hidden" id="approval-card">
+        <!-- Card header -->
+        <div class="px-5 py-3 border-b border-line/60 flex items-center gap-3 bg-panel2/40">
+          <div class="text-xs text-mute">Pending</div>
+          <div class="font-mono text-sm" id="q-counter">#1 / 68</div>
+          <span class="chip border-accent/30 text-accent2 bg-accent/10" id="q-type">Filter Reorder Reminder</span>
+          <span class="chip text-ok ml-auto">✓ Passed all 5 rules</span>
+        </div>
+
+        <!-- Email body -->
+        <div class="grid md:grid-cols-[1fr_280px]">
+          <div class="p-6">
+            <div class="grid grid-cols-[80px_1fr] gap-y-1.5 text-sm">
+              <div class="text-mute">TO</div>
+              <div><span id="m-to">王太太</span> <span class="text-mute num text-xs">(<span id="m-id">c_2840</span>)</span></div>
+              <div class="text-mute">SUBJECT</div>
+              <div class="font-semibold" id="m-subject">您的主濾芯該換囉（已使用 105 天）</div>
+              <div class="text-mute">COST</div>
+              <div><span id="m-cost">NT$200</span> 早鳥折扣</div>
+            </div>
+
+            <div class="mt-5 border-t border-line/60 pt-5 leading-7 text-[15px]" id="m-body">
+              <p>王太太您好，</p>
+              <p class="mt-3">您的 PureHome 淨水器主濾芯已使用 <b class="text-warn">105 天</b>，建議更換週期是 90 天——超過會影響濾水效果跟流速。</p>
+              <p class="mt-3">為您準備了 <b>NT$200 早鳥折扣</b>，本週訂購可享：</p>
+              <ul class="mt-2 ml-6 list-disc text-mute">
+                <li>隔日到貨</li>
+                <li>客服協助安裝指引</li>
+                <li>舊濾芯免費回收</li>
+              </ul>
+              <p class="mt-4">PureHome 客服 - Allen<br/>
+                <a class="text-accent2 underline">[退訂連結]</a></p>
+            </div>
+
+            <!-- Action bar -->
+            <div class="mt-6 flex flex-wrap items-center gap-2">
+              <button onclick="approveCurrent()" class="px-5 py-2.5 rounded-xl bg-accent text-ink font-bold hover:brightness-110 active:scale-[.98] transition">
+                ✓ Approve & Send
+              </button>
+              <button onclick="editCurrent()" class="px-4 py-2.5 rounded-xl border border-line hover:border-accent text-white">
+                ✏ Edit
+              </button>
+              <button onclick="skipCurrent()" class="px-4 py-2.5 rounded-xl border border-line hover:border-danger text-mute hover:text-white">
+                ✗ Skip & Why?
+              </button>
+              <span class="ml-auto text-xs text-mute hidden md:block">↵ Approve · E Edit · S Skip</span>
+            </div>
+          </div>
+
+          <!-- Why this customer -->
+          <aside class="border-t md:border-t-0 md:border-l border-line/60 p-5 bg-panel2/30">
+            <div class="text-xs text-mute uppercase tracking-wider">Why this customer?</div>
+            <ul class="mt-3 space-y-3 text-sm" id="m-why">
+              <li class="flex gap-2"><span class="text-warn">•</span>主濾芯使用 <b>105 天</b>（建議 90）</li>
+              <li class="flex gap-2"><span class="text-ok">•</span>過去 <b>3 次</b>都準時換</li>
+              <li class="flex gap-2"><span class="text-mute">•</span>上次互動：2 個月前回信稱讚</li>
+              <li class="flex gap-2"><span class="text-accent2">•</span>LTV：<b>NT$ 28,400 / 4 年</b></li>
+              <li class="flex gap-2"><span class="text-warn">•</span>流失風險：<b>62/100</b>（中等）</li>
+            </ul>
+            <div class="mt-5 pt-4 border-t border-line/60 text-xs text-mute">
+              <div class="uppercase tracking-wider">Source signals</div>
+              <div class="mt-2 space-y-1.5 font-mono">
+                <div>iot.tds.delta = +18 ppm</div>
+                <div>iot.flow_rate = 1.4 L/min ↓</div>
+                <div>orders.last_filter = 2026-01-20</div>
+                <div>support.last_ticket = none</div>
+              </div>
+            </div>
+          </aside>
+        </div>
+
+        <!-- Toast -->
+        <div id="toast" class="hidden px-5 py-3 border-t border-line/60 bg-ok/10 text-ok text-sm toast"></div>
+      </div>
+    </div>
+
+    <!-- Quick queue preview -->
+    <div class="card rounded-2xl p-4">
+      <div class="flex items-center gap-2 mb-3">
+        <h4 class="font-bold text-sm">Queue · 接下來</h4>
+        <span class="text-mute text-xs">點下方任一封跳到</span>
+      </div>
+      <div class="grid md:grid-cols-3 gap-2" id="queue-preview"></div>
+    </div>
+  </section>
+
+  <!-- ===================== MODULE 5 · OPERATIONS ===================== -->
+  <section id="m5" class="space-y-5">
+    <div class="flex items-end justify-between flex-wrap gap-3">
+      <div>
+        <div class="text-mute text-xs tracking-[.2em] uppercase">Module 05 · 09:30</div>
+        <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight mt-1">
+          Operations <span class="text-mute font-semibold">· 出貨 / 客服 / 庫存 / 安裝</span>
+        </h2>
+        <p class="text-mute mt-2 max-w-2xl">
+          四條供應鏈，過去要開 4 個 Tab。AI 整合成一張地圖——紅黃綠一眼看完。
+        </p>
+      </div>
+    </div>
+
+    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- Shipping -->
+      <div class="card rounded-2xl p-5">
+        <div class="flex items-center justify-between">
+          <h3 class="font-bold">📦 出貨</h3>
+          <span class="chip border-ok/30 text-ok bg-ok/10">SLA 達標</span>
+        </div>
+        <div class="num text-3xl font-extrabold mt-2">312<span class="text-mute text-base"> / 週</span></div>
+        <div class="mt-3 space-y-1.5 text-sm">
+          <div class="flex justify-between"><span class="text-mute">已出</span><span class="num text-ok">198</span></div>
+          <div class="flex justify-between"><span class="text-mute">在途</span><span class="num">87</span></div>
+          <div class="flex justify-between"><span class="text-mute">待出</span><span class="num text-warn">27</span></div>
+        </div>
+        <div class="mt-3 h-2 rounded-full overflow-hidden flex bg-line">
+          <div style="width:63%" class="bg-ok"></div>
+          <div style="width:28%" class="bg-accent"></div>
+          <div style="width:9%" class="bg-warn"></div>
+        </div>
+        <div class="mt-3 text-xs text-mute">平均出貨時效 18h（去年同期 24h）</div>
+      </div>
+
+      <!-- Support -->
+      <div class="card rounded-2xl p-5">
+        <div class="flex items-center justify-between">
+          <h3 class="font-bold">🎧 客服</h3>
+          <span class="chip border-warn/30 text-warn bg-warn/10">負荷高</span>
+        </div>
+        <div class="num text-3xl font-extrabold mt-2">42<span class="text-mute text-base"> tickets</span></div>
+        <div class="mt-3 space-y-1.5 text-sm">
+          <div class="flex justify-between"><span class="text-mute">AI 已解</span><span class="num text-ok">28</span></div>
+          <div class="flex justify-between"><span class="text-mute">人工處理</span><span class="num">11</span></div>
+          <div class="flex justify-between"><span class="text-mute">待派工</span><span class="num text-warn">3</span></div>
+        </div>
+        <div class="mt-3 text-xs text-mute">AI 自動處理率 67% · 滿意度 4.6 / 5</div>
+        <a href="#m4" class="mt-2 inline-block text-accent2 text-xs">→ 客服腳本也走 Approval Queue</a>
+      </div>
+
+      <!-- Inventory -->
+      <div class="card rounded-2xl p-5">
+        <div class="flex items-center justify-between">
+          <h3 class="font-bold">📊 庫存</h3>
+          <span class="chip border-danger/30 text-danger bg-danger/10">需補貨</span>
+        </div>
+        <div class="num text-3xl font-extrabold mt-2">287<span class="text-mute text-base"> / 312</span></div>
+        <div class="mt-3 space-y-1.5 text-sm">
+          <div class="flex justify-between"><span class="text-mute">主濾芯 A1</span><span class="num text-warn">−25 缺</span></div>
+          <div class="flex justify-between"><span class="text-mute">前置濾芯</span><span class="num text-ok">+184</span></div>
+          <div class="flex justify-between"><span class="text-mute">除濕機集水盒</span><span class="num text-ok">+62</span></div>
+        </div>
+        <button class="mt-3 w-full px-3 py-2 rounded-lg bg-warn/15 text-warn border border-warn/30 text-sm font-semibold hover:bg-warn/25">
+          🛒 自動產生 PO（25 件）
+        </button>
+      </div>
+
+      <!-- Install -->
+      <div class="card rounded-2xl p-5">
+        <div class="flex items-center justify-between">
+          <h3 class="font-bold">🔧 安裝預約</h3>
+          <span class="chip border-ok/30 text-ok bg-ok/10">充裕</span>
+        </div>
+        <div class="num text-3xl font-extrabold mt-2">14<span class="text-mute text-base"> / 本週</span></div>
+        <div class="mt-3 space-y-1.5 text-sm">
+          <div class="flex justify-between"><span class="text-mute">已排</span><span class="num text-ok">11</span></div>
+          <div class="flex justify-between"><span class="text-mute">候排</span><span class="num">2</span></div>
+          <div class="flex justify-between"><span class="text-mute">改期</span><span class="num text-warn">1</span></div>
+        </div>
+        <div class="mt-3 text-xs text-mute">技師 5 人 · 平均到府 2.3 天</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== MODULE 6 · C-SUITE ===================== -->
+  <section id="m6" class="space-y-5">
+    <div class="flex items-end justify-between flex-wrap gap-3">
+      <div>
+        <div class="text-mute text-xs tracking-[.2em] uppercase">Module 06 · 10:00</div>
+        <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight mt-1">
+          C-Suite 戰力會議 <span class="text-mute font-semibold">· Allen × 4 個 AI 副手</span>
+        </h2>
+        <p class="text-mute mt-2 max-w-2xl">
+          Allen 不再開 4 場會。4 個 AI 副手帶數據、帶提案、帶風險，10 分鐘核完。
+        </p>
+      </div>
+      <span class="chip border-gold/40 text-gold bg-gold/10">「我做 Approve / Reject」</span>
+    </div>
+
+    <div class="grid md:grid-cols-2 gap-4">
+      <!-- CMO -->
+      <div class="card rounded-2xl p-5">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-accent/20 grid place-items-center text-accent font-bold">CMO</div>
+          <div>
+            <div class="font-bold">行銷副手 · Aria</div>
+            <div class="text-mute text-xs">負責 增長 / 廣告 / 品牌</div>
+          </div>
+          <span class="ml-auto chip border-ok/30 text-ok bg-ok/10">綠燈</span>
+        </div>
+        <p class="mt-4 text-[15px] leading-7">
+          訂閱新增 <b class="num">47/50</b>（94%）。下週推「<span class="text-accent2">換濾芯送除濕機試用 7 天</span>」？
+          預估觸達 <b class="num">820</b> 戶、轉換 <b class="num">+11%</b>，預算 NT$ 18 萬。
+        </p>
+        <div class="mt-3 flex gap-2">
+          <button onclick="cs(this,'CMO ✓ Approved')" class="px-3 py-1.5 rounded-lg bg-accent text-ink text-sm font-bold">Approve</button>
+          <button onclick="cs(this,'CMO 修正中…')" class="px-3 py-1.5 rounded-lg border border-line text-sm">Edit</button>
+          <button onclick="cs(this,'CMO Rejected')" class="px-3 py-1.5 rounded-lg border border-line text-mute text-sm">Reject</button>
+        </div>
+      </div>
+
+      <!-- CCO -->
+      <div class="card rounded-2xl p-5">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-warn/20 grid place-items-center text-warn font-bold">CCO</div>
+          <div>
+            <div class="font-bold">客戶副手 · Cole</div>
+            <div class="text-mute text-xs">負責 客服 / 留客 / NPS</div>
+          </div>
+          <span class="ml-auto chip border-warn/30 text-warn bg-warn/10">黃燈</span>
+        </div>
+        <p class="mt-4 text-[15px] leading-7">
+          流失率 <b class="text-ok num">12% → 9.5%</b>。<b class="num">68</b> 個逾期戶提醒已寫好——
+          <span class="text-accent2">批量送嗎？</span>（皆已通過 5 條規則）
+        </p>
+        <div class="mt-3 flex gap-2">
+          <button onclick="batchSend()" class="px-3 py-1.5 rounded-lg bg-accent text-ink text-sm font-bold">批量 Approve</button>
+          <button onclick="cs(this,'CCO 改逐封審')" class="px-3 py-1.5 rounded-lg border border-line text-sm">逐封審</button>
+        </div>
+      </div>
+
+      <!-- COO -->
+      <div class="card rounded-2xl p-5">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-ok/20 grid place-items-center text-ok font-bold">COO</div>
+          <div>
+            <div class="font-bold">營運副手 · Ops</div>
+            <div class="text-mute text-xs">負責 出貨 / 倉儲 / 安裝</div>
+          </div>
+          <span class="ml-auto chip border-ok/30 text-ok bg-ok/10">綠燈</span>
+        </div>
+        <p class="mt-4 text-[15px] leading-7">
+          出貨時效 <b class="text-ok">24h → 18h</b>。倉儲外包試算：每月省 <b class="num">NT$ 15 萬</b>，
+          <span class="text-warn">交付風險 +1 級</span>，建議先試一個月。
+        </p>
+        <div class="mt-3 flex gap-2">
+          <button onclick="cs(this,'COO 試辦 1 個月')" class="px-3 py-1.5 rounded-lg bg-accent text-ink text-sm font-bold">試辦 1 月</button>
+          <button onclick="cs(this,'COO Rejected')" class="px-3 py-1.5 rounded-lg border border-line text-mute text-sm">維持</button>
+        </div>
+      </div>
+
+      <!-- CFO -->
+      <div class="card rounded-2xl p-5">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gold/20 grid place-items-center text-gold font-bold">CFO</div>
+          <div>
+            <div class="font-bold">財務副手 · Finn</div>
+            <div class="text-mute text-xs">負責 ARR / 現金 / 風險</div>
+          </div>
+          <span class="ml-auto chip border-gold/40 text-gold bg-gold/10">注意</span>
+        </div>
+        <p class="mt-4 text-[15px] leading-7">
+          ARR <b class="num">NT$ 4,500 萬</b>（+8% MoM）。iSpring 進場——
+          建議備 <b class="num text-warn">NT$ 200 萬</b>戰備金，從廣告月預算挪 5%，30 天內到位。
+        </p>
+        <div class="mt-3 flex gap-2">
+          <button onclick="cs(this,'CFO ✓ 戰備金到位')" class="px-3 py-1.5 rounded-lg bg-accent text-ink text-sm font-bold">Approve</button>
+          <button onclick="cs(this,'CFO 50% 折半')" class="px-3 py-1.5 rounded-lg border border-line text-sm">折半</button>
+          <button onclick="cs(this,'CFO 暫緩')" class="px-3 py-1.5 rounded-lg border border-line text-mute text-sm">暫緩</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Closing line -->
+    <div class="card rounded-2xl p-6 mt-2 border-l-4 border-accent">
+      <div class="text-xs text-mute uppercase tracking-[.2em]">10:10 · 結語</div>
+      <blockquote class="mt-2 text-xl md:text-2xl font-bold leading-relaxed">
+        「這就是新時代——<span class="text-accent2">每一個訂閱品牌主管，都該是『AI 的 COO』</span>。」
+      </blockquote>
+      <div class="text-mute text-sm mt-3">— Allen, 35, Head of Subscription Operations · PureHome</div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="pt-10 pb-6 text-center text-xs text-mute border-t border-line/60">
+    <div>PureHome AI 組織早晨 Demo · PRD V2.1 · 純 demo 數據（虛構）</div>
+    <div class="mt-1">Built for live keynote · Single-file static · No backend, no PII</div>
+  </footer>
+
+</main>
+
+<!-- ============================================================ -->
+<!-- DEMO LOGIC                                                    -->
+<!-- ============================================================ -->
+<script>
+  // ---------- Clock ----------
+  const clockEl = document.getElementById('clock');
+  function tickClock() {
+    const d = new Date();
+    const hh = String(d.getHours()).padStart(2,'0');
+    const mm = String(d.getMinutes()).padStart(2,'0');
+    clockEl.textContent = `${hh}:${mm}`;
+  }
+  tickClock(); setInterval(tickClock, 30_000);
+
+  // ---------- Approval Queue data ----------
+  const QUEUE = [
+    { id:'c_2840', name:'王太太', type:'Filter Reorder Reminder', subject:'您的主濾芯該換囉（已使用 105 天）', cost:'NT$200',
+      body:[
+        '王太太您好，',
+        '您的 PureHome 淨水器主濾芯已使用 <b class="text-warn">105 天</b>，建議更換週期是 90 天——超過會影響濾水效果跟流速。',
+        '為您準備了 <b>NT$200 早鳥折扣</b>，本週訂購可享：',
+        '<ul class="mt-2 ml-6 list-disc text-mute"><li>隔日到貨</li><li>客服協助安裝指引</li><li>舊濾芯免費回收</li></ul>',
+        'PureHome 客服 - Allen<br/><a class="text-accent2 underline">[退訂連結]</a>'
+      ],
+      why:[
+        ['warn','主濾芯使用 <b>105 天</b>（建議 90）'],
+        ['ok','過去 <b>3 次</b>都準時換'],
+        ['mute','上次互動：2 個月前回信稱讚'],
+        ['accent2','LTV：<b>NT$ 28,400 / 4 年</b>'],
+        ['warn','流失風險：<b>62/100</b>（中等）']
+      ]
+    },
+    { id:'c_5102', name:'陳先生', type:'Warranty Renewal', subject:'除濕機保固 7 天到期 — 延保方案', cost:'NT$890',
+      body:[
+        '陳先生您好，',
+        '您的 PureHome 除濕機 <b>原廠保固再 7 天到期</b>。我們從 IoT 看到您家相對溼度長期 75%+，機器負荷較重。',
+        '為您準備了 <b>2 年延長保固方案 NT$890</b>（原 NT$1,200），含：',
+        '<ul class="mt-2 ml-6 list-disc text-mute"><li>到府維修 2 次免運</li><li>除霜壓縮機保固</li><li>每年免費深度清洗</li></ul>',
+        'PureHome 客服 - Allen<br/><a class="text-accent2 underline">[退訂連結]</a>'
+      ],
+      why:[
+        ['warn','保固剩 <b>7 天</b>'],
+        ['mute','IoT 相對溼度 12 個月平均 76.4%'],
+        ['ok','客服紀錄：曾抱怨除霜頻繁'],
+        ['accent2','LTV：<b>NT$ 12,800 / 1.2 年</b>'],
+        ['mute','流失風險：<b>28/100</b>（低）']
+      ]
+    },
+    { id:'c_6630', name:'林小姐', type:'Competitor Retention', subject:'iSpring 降價我們知道——但有件事您可能沒比較',
+      cost:'NT$0',
+      body:[
+        '林小姐您好，',
+        '我們看到 iSpring 美國上週降價 NT$300。我想老實說一件事：價格我們不會立刻跟。',
+        '原因是——我們的 <b>本地客服 + 24h 換濾芯保證 + 隔年免費水質檢測</b>，是長期成本更低的選擇。',
+        '如果您仍在比較，我可以請技師到府做一次 <b>免費 TDS 比對</b>，您再決定。',
+        'PureHome 客服 - Allen<br/><a class="text-accent2 underline">[退訂連結]</a>'
+      ],
+      why:[
+        ['warn','過去 30 天瀏覽 iSpring 官網 <b>3 次</b>'],
+        ['ok','訂戶 2.4 年，準時續訂 6 次'],
+        ['accent2','LTV：<b>NT$ 35,200</b>'],
+        ['warn','流失風險：<b>71/100</b>（高）'],
+        ['mute','上次互動：上週客服詢問濾芯規格']
+      ]
+    }
+  ];
+
+  let idx = 0;
+  let approved = 0, skipped = 0;
+  const TOTAL = 68;
+
+  const $ = sel => document.querySelector(sel);
+  const card = $('#approval-card');
+  const toast = $('#toast');
+
+  function renderCurrent() {
+    const item = QUEUE[idx % QUEUE.length];
+    $('#q-counter').textContent = `#${approved + skipped + 1} / ${TOTAL}`;
+    $('#q-type').textContent = item.type;
+    $('#m-to').textContent = item.name;
+    $('#m-id').textContent = item.id;
+    $('#m-subject').textContent = item.subject;
+    $('#m-cost').textContent = item.cost;
+    $('#m-body').innerHTML = item.body.map(p => p.startsWith('<') ? p : `<p class="mt-3">${p}</p>`).join('');
+    $('#m-why').innerHTML = item.why.map(([color, html]) =>
+      `<li class="flex gap-2"><span class="text-${color}">•</span><span>${html}</span></li>`
+    ).join('');
+  }
+
+  function showToast(msg, ok=true) {
+    toast.textContent = msg;
+    toast.className = `px-5 py-3 border-t border-line/60 text-sm toast ${ok ? 'bg-ok/10 text-ok' : 'bg-danger/10 text-danger'}`;
+    toast.classList.remove('hidden');
+    setTimeout(() => toast.classList.add('hidden'), 1800);
+  }
+
+  function updateCounters() {
+    $('#q-pending').innerHTML = `<span class="pulse-dot"></span>${TOTAL - approved - skipped} pending`;
+    $('#q-approved').textContent = `${approved} approved`;
+    $('#q-skipped').textContent = `${skipped} skipped`;
+  }
+
+  function approveCurrent() {
+    const item = QUEUE[idx % QUEUE.length];
+    approved++;
+    showToast(`✓ 已寄給 ${item.name}（${item.id}）· LTV NT$ 28,400 已記錄`, true);
+    next();
+  }
+  function skipCurrent() {
+    const item = QUEUE[idx % QUEUE.length];
+    skipped++;
+    showToast(`✗ 已跳過 ${item.name}。AI 會學習為什麼。`, false);
+    next();
+  }
+  function editCurrent() {
+    showToast('✏ 編輯模式（demo 略）— 改完仍需 Approve', true);
+  }
+  function next() {
+    idx++;
+    updateCounters();
+    if (approved + skipped >= TOTAL) {
+      showToast(`🎉 今日 68 封全部處理完成 · ${approved} 已寄 · ${skipped} 跳過`, true);
+      return;
+    }
+    setTimeout(renderCurrent, 220);
+  }
+  function batchSend() {
+    const remaining = TOTAL - approved - skipped;
+    approved += remaining;
+    updateCounters();
+    showToast(`✓ 批量寄出 ${remaining} 封（皆通過 5 條規則）`, true);
+  }
+  function cs(btn, msg) {
+    btn.parentElement.parentElement.classList.add('opacity-70');
+    showToast(msg, !msg.includes('Reject') && !msg.includes('暫緩'));
+  }
+  function resetDemo() {
+    idx = 0; approved = 0; skipped = 0;
+    updateCounters();
+    renderCurrent();
+    document.querySelectorAll('.card.opacity-70').forEach(el => el.classList.remove('opacity-70'));
+    showToast('↻ Demo 重設完成', true);
+  }
+
+  // ---------- Queue preview ----------
+  const previewItems = [
+    { tag:'Filter', name:'李先生', meta:'濾芯 92 天' },
+    { tag:'Warranty', name:'吳太太', meta:'保固 14 天' },
+    { tag:'Retention', name:'黃先生', meta:'流失風險 78' },
+    { tag:'Filter', name:'蔡小姐', meta:'濾芯 98 天' },
+    { tag:'NPS', name:'許先生', meta:'裝機 7 天' },
+    { tag:'Upsell', name:'周太太', meta:'除濕機加購' },
+  ];
+  document.getElementById('queue-preview').innerHTML = previewItems.map((it,i) =>
+    `<button class="text-left p-3 rounded-xl border border-line/60 hover:border-accent/50 bg-panel2/30 transition" onclick="document.getElementById('m4').scrollIntoView({behavior:'smooth'})">
+       <div class="flex items-center justify-between text-xs">
+         <span class="chip text-mute">${it.tag}</span>
+         <span class="text-mute num">#${i+2}</span>
+       </div>
+       <div class="font-semibold mt-2">${it.name}</div>
+       <div class="text-mute text-xs">${it.meta}</div>
+     </button>`
+  ).join('');
+
+  // ---------- Stepper highlight on scroll ----------
+  const sections = ['m1','m2','m3','m4','m5','m6'];
+  const stepEls = document.querySelectorAll('.step');
+  const obs = new IntersectionObserver((entries)=>{
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        const i = sections.indexOf(e.target.id);
+        stepEls.forEach((el, k) => {
+          el.classList.remove('active');
+          el.classList.toggle('done', k < i);
+          if (k === i) el.classList.add('active');
+        });
+      }
+    });
+  }, { rootMargin: '-40% 0px -55% 0px', threshold: 0 });
+  sections.forEach(id => { const el = document.getElementById(id); if (el) obs.observe(el); });
+
+  // ---------- Keyboard ----------
+  window.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    if (e.key === 'Enter') approveCurrent();
+    if (e.key === 'e' || e.key === 'E') editCurrent();
+    if (e.key === 's' || e.key === 'S') skipCurrent();
+  });
+
+  // Initial render
+  renderCurrent();
+  updateCounters();
+</script>
+</body>
+</html>
